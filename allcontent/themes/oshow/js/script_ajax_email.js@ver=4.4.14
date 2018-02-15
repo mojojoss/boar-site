@@ -1,0 +1,261 @@
+jQuery(document).ready(function($) {
+
+// Ajax email Заказать бесплатный звонок + Бесплатная конмультация + Заказать звонок
+
+jQuery('#nik').on('click', function(e) {
+
+	e.preventDefault();
+
+  $('.more-info-show').css("display","");
+  $('#nik').css("display","none");
+
+});
+
+
+jQuery('#newCustomerForm').submit(function(e){
+
+		e.preventDefault();
+
+		var input_phone = $('#input_phone2').val();
+		var input_name = $('#input_name2').val();
+
+		// console.log($('#input_phone2').val());
+		// console.log($('#input_name2').val());
+
+		var data = {
+
+			action: 'my_email_ok',
+			status: status,
+			input_name: input_name,
+			input_phone: input_phone
+
+		};
+
+		$.ajax({
+			url: myajax.url,
+			type: 'POST',
+			dataType: 'json',
+			data: data,
+			complete: function (response) {
+				var data = $.parseJSON(response.responseText);
+				console.log(data);
+				if (data = "ok") {
+
+				$('.activePopup').css("display","none");
+
+				$('.popup2').css("display","block");
+
+				$('.noselect').click(function(){
+				  $('.popup2').css("display","none");
+				});
+				}
+			}
+		});
+	});
+
+// Ajax email Написать нам
+
+jQuery('#newCustomerForm3').submit(function(e){
+
+		e.preventDefault();
+
+		var input_phone3 = $('#input_phone3').val();
+		var input_name3 = $('#input_name3').val();
+		var input_area3 = $('#input_area3').val();
+
+		// console.log($('#input_phone3').val());
+		// console.log($('#input_name3').val());
+		// console.log($('#input_area3').val());
+
+		var data = {
+
+			action: 'my_email_ok3',
+			status: status,
+			input_name3: input_name3,
+			input_phone3: input_phone3,
+			input_area3: input_area3
+
+		};
+
+		$.ajax({
+			url: myajax.url,
+			type: 'POST',
+			dataType: 'json',
+			data: data,
+			complete: function (response) {
+				var data = $.parseJSON(response.responseText);
+				console.log(data);
+				if (data = "ok") {
+
+				$('.activePopup').css("display","none") 
+				
+				$('.popup2').css("display","block");
+
+				$('.noselect').click(function(){
+				  $('.popup2').css("display","none");
+				});
+				}
+			}
+		});
+	});
+
+
+//*-----------------------------------------------------------------------------------*/ Ajax email Сделать предзаказ
+
+jQuery('#newCustomerForm4').submit(function(e){
+
+		e.preventDefault();
+
+		var input_phone4 = $('#input_phone4').val();
+		var input_name4 = $('#input_name4').val();
+
+		// console.log($('#input_phone4').val());
+		// console.log($('#input_name4').val());
+
+		var data = {
+
+			action: 'my_email_ok4',
+			status: status,
+			input_name4: input_name4,
+			input_phone4: input_phone4
+
+		};
+
+		$.ajax({
+			url: myajax.url,
+			type: 'POST',
+			dataType: 'json',
+			data: data,
+			complete: function (response) {
+				var data = $.parseJSON(response.responseText);
+				console.log(data);
+				if (data = "ok") {
+
+				$('.activePopup').css("display","none") 
+				
+				$('.popup2').css("display","block");
+
+				$('.noselect').click(function(){
+				  $('.popup2').css("display","none");
+				});
+				}
+			}
+		});
+	});
+
+//*-----------------------------------------------------------------------------------*/ Ajax email Хочу так же
+
+jQuery('#newCustomerForm5').submit(function(e){
+
+		e.preventDefault();
+
+		var input_phone5 = $('#input_phone5').val();
+		var input_name5 = $('#input_name5').val();
+
+		// console.log($('#input_phone5').val());
+		// console.log($('#input_name5').val());
+
+		var data = {
+
+			action: 'my_email_ok5',
+			status: status,
+			input_name5: input_name5,
+			input_phone5: input_phone5
+
+		};
+
+		$.ajax({
+			url: myajax.url,
+			type: 'POST',
+			dataType: 'json',
+			data: data,
+			complete: function (response) {
+				var data = $.parseJSON(response.responseText);
+				console.log(data);
+				if (data = "ok") {
+
+				$('.activePopup').css("display","none") 
+				
+				$('.popup2').css("display","block");
+
+				$('.noselect').click(function(){
+				  $('.popup2').css("display","none");
+				});
+				}
+			}
+		});
+	});
+
+
+
+
+//*-----------------------------------------------------------------------------------*/ Ajax email ЗАКАЗ ШОУ
+
+jQuery('#order-form2').submit(function(e){
+
+		e.preventDefault();
+
+		var title_name = $('.wrap-padding').find('h2').first().text();
+		var fio = $('#input_name6').val();
+		var town = $('#citytown').find(":selected").text();
+		var number = $('#input_phone6').val();
+		var kolichestvo = $('input[name="kol"]:checked').val();
+		var zagoropod = $('#kilom1').val();
+		var time_old = $('#all_time').text();
+		var time_all = $('#all_time').text();
+		var all_price = $('#all_cost').text();
+		var dop_oputu =  $('.checkboxes_dop_functions_block').find("input:checkbox:checked").map(function(i, el){  return $(el).val(); }).get().toString();
+
+
+		// console.log(dop_oputu);
+		// console.log(all_price);
+		// console.log(time_old);
+		// console.log(zagoropod);
+		// console.log(kolichestvo);
+		// console.log(town);
+		// console.log(title_name);
+		// console.log(number);
+		// console.log(fio);
+
+		var data = {
+
+			action: 'my_email_ok6',
+			status: status,
+			title_name: title_name,
+			fio: fio,
+			town: town,
+			number: number,
+			kolichestvo: kolichestvo,
+			zagoropod: zagoropod,
+			time_old: time_old,
+			time_all: time_all,
+			all_price: all_price,
+			dop_oputu: dop_oputu
+		};
+
+		$.ajax({
+			url: myajax.url,
+			type: 'POST',
+			dataType: 'json',
+			data: data,
+			complete: function (response) {
+				var data = $.parseJSON(response.responseText);
+				console.log(data);
+				if (data = "ok") {
+
+				$('.activePopup').css("display","none");
+				$('.popup2').css("display","block");
+
+				$('.noselect').click(function(){
+				  $('.popup2').css("display","none");
+				});
+
+
+
+				}
+			}
+		});
+	});
+
+
+});

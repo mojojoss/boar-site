@@ -1,0 +1,172 @@
+/* Author: 
+
+	OPENER
+*/
+
+project.shows = {
+    getAll: true,
+	init: function(){
+            var self = this;
+            this.binds();
+	},
+        getShow : function(min, max) {
+            project.post('/core/get_shows_by_age/'+min+'/'+max+'/'+langKey+'/',{},function(data){
+                $('#shows_container').html(data.data);
+            });
+        },
+        getPrazdnikShow : function(prId, min, max) {
+            project.post('/core/get_shows_by_prazdnik_age/'+min+'/'+max+'/'+langKey+'/'+prId+'/',{},function(data){
+                $('#shows_container').html(data.data);
+            });
+        },
+	binds: function(){
+            $(".slider-range").slider({
+                range:true,
+                min: 3,
+                max: 16,
+                values:[ 3, 16 ],
+                animate :true,
+                slide:function(event, ui) {
+                    refreshSliderNumbers(ui.values[ 0 ], ui.values[ 1 ]);
+                },
+                change:function (event, ui) {
+                    refreshSliderNumbers(ui.values[ 0 ], ui.values[ 1 ]);
+                    project.post('/core/get_shows_by_age/'+ui.values[ 0 ]+'/'+ui.values[ 1 ]+'/'+langKey+'/',{},function(data){
+
+                            $('#shows_container').html(data.data);
+
+                    });
+                    //requestAgeChangesFromServer(ui.values[ 0 ], ui.values[ 1 ]);
+                }
+            });
+
+            if (project.shows.getAll == true) {
+                project.post('/core/get_shows_by_age/all/'+langKey+'/',{},function(data){
+                    $('#shows_container').html(data.data);
+                });
+            }
+        
+        $('#pre_order_show_btn').click(function(){
+
+            $('#popup_modal_wnd').remove();
+
+            project.post('/core/get_show_pre_order_form/',{},function(data){
+
+                $('body')
+                .append(
+                    $('<div>')
+                        .attr('id','popup_modal_wnd')
+                        .html(data.data)
+                );
+
+                $('#popup_modal_wnd').arcticmodal({
+                    afterClose: function(data, el) {
+                        $('#popup_modal_wnd').remove();
+                    }                    
+                });
+                $(".date_input").datepicker({
+                    dateFormat: 'yy.mm.dd'
+                });
+
+
+            });
+            return false;
+        });
+        
+            $('#send_show_pre_order_form_btn').live('click',function(){
+                $('#popup_post_form').html('');
+
+                $('form#target').append(
+                    $('<input>',{
+                        name: 'show_total_time',
+                        type: 'hidden',
+                        value: $('#all_time').text()
+                    })
+                ).append(
+                    $('<input>',{
+                        name: 'show_total_price',
+                        type: 'hidden',
+                        value: $('#all_cost').text()
+                    })
+                );
+
+                var form_valid = true;
+
+                $('#cus-show').find('input[type="text"],input[type="email"],input[type="radio"]:checked,select,textarea').each(function(){
+
+                    if ($(this).is(':invalid')) {
+
+                        alert('Заполните все обязательные поля!'); 
+
+                        form_valid = false;
+                        return false;               
+
+                    }
+
+                    var input = $(this);
+
+                    $('#popup_post_form').append(
+                        '<input type="hidden" name="'+input.attr('name')+'" value="'+input.val()+'"/>'
+                    );
+
+                });
+
+
+                if (!form_valid) return false;
+                
+                project.post('/core/get_show_pre_request/',{'name':$('#pre_order_name').val(),'phone':$('#pre_order_phone').val()},function(data){
+                    alert('Спасибо за ваш заказ');
+                    $.arcticmodal('close');
+                });
+                return false;
+            });
+
+	},
+	setShowAges: function(min,max){
+//            $( ".slider-range" ).slider( 'values', [min,max]);
+            $('.age-title').html("от "+min+" до "+max+" лет");
+//            $('#shows_container').css({'text-align':'left'});
+//            $('#shows_container').css({'margin-left':'20px'});
+            project.shows.getShow(min,max);
+        },
+	setShowPrazdnikAges: function(prId,min,max){
+//            $( ".slider-range" ).slider( 'values', [min,max]);
+            $('.age-title').html("от "+min+" до "+max+" лет");
+//            $('#shows_container').css({'text-align':'left'});
+//            $('#shows_container').css({'margin-left':'20px'});
+            project.shows.getPrazdnikShow(prId,min,max);
+        },
+
+
+}
+
+
+			function refreshSliderNumbers(minAge, maxAge) {
+            
+              	for (var i = 3; i <= 16; i++) {
+                 	$("#slider_number_" + i).toggleClass("active", i >= minAge && i <= maxAge);
+              	}
+
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

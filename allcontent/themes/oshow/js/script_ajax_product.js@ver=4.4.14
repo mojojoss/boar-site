@@ -1,0 +1,153 @@
+jQuery(document).ready(function ($) {
+
+
+    jQuery('.radio_line input[name=time]').on('change', function (e) {
+
+        var time_parametr = $('input[name="time"]:checked').val();
+        var status = $('#citytown').find(":selected").text();
+        var page_id = $('.id_page').text();
+        var vinnica = $('.price_vn').text();
+        var dnepropetrovsk = $('.price_dnp').text();
+        var zaporozhie = $('.price_zp').text();
+        var ivanf = $('.price_if').text();
+        var kyev = $('.price_ky').text();
+        var krivrog = $('.price_kr').text();
+        var lviv = $('.price_lv').text();
+        var nikolaev = $('.price_nik').text();
+        var odessa = $('.price_od').text();
+        var ugledar = $('.price_ug').text();
+        var xarkov = $('.price_xr').text();
+
+        var data = {
+
+            action: 'my_product_ok',
+            status: status,
+            time_parametr: time_parametr,
+            page_id: page_id,
+            vinnica: vinnica,
+            dnepropetrovsk: dnepropetrovsk,
+            zaporozhie: zaporozhie,
+            ivanf: ivanf,
+            kyev: kyev,
+            krivrog: krivrog,
+            lviv: lviv,
+            nikolaev: nikolaev,
+            odessa: odessa,
+            ugledar: ugledar,
+            xarkov: xarkov
+
+        };
+
+        $.ajax({
+            url: myajax.url,
+            type: 'POST',
+            dataType: 'json',
+            data: data,
+            complete: function (response) {
+                var data = $.parseJSON(response.responseText);
+
+                if (response) {
+
+                    $('#all_cost').text(data.show_price + " грн");
+                    project.show_order.show_base_price = data.show_price;
+
+                }
+            }
+        });
+    });
+
+    jQuery('#citytown').change(function (e) {
+        // e.preventDefault();
+        // var time_parametr = $('input[name="time"]:checked').val();
+        var time_parametr = '30';
+        var status = $(this).find(":selected").text();
+        var page_id = $('.id_page').text();
+        var vinnica = $('.price_vn').text();
+        var dnepropetrovsk = $('.price_dnp').text();
+        var zaporozhie = $('.price_zp').text();
+        var ivanf = $('.price_if').text();
+        var kyev = $('.price_ky').text();
+        var krivrog = $('.price_kr').text();
+        var lviv = $('.price_lv').text();
+        var nikolaev = $('.price_nik').text();
+        var odessa = $('.price_od').text();
+        var ugledar = $('.price_ug').text();
+        var xarkov = $('.price_xr').text();
+
+        console.log($(this).find(":selected").text());
+        console.log($('.price_od').text());
+
+        var data = {
+
+            action: 'my_product_ok',
+            status: status,
+            time_parametr: time_parametr,
+            page_id: page_id,
+            vinnica: vinnica,
+            dnepropetrovsk: dnepropetrovsk,
+            zaporozhie: zaporozhie,
+            ivanf: ivanf,
+            kyev: kyev,
+            krivrog: krivrog,
+            lviv: lviv,
+            nikolaev: nikolaev,
+            odessa: odessa,
+            ugledar: ugledar,
+            xarkov: xarkov
+
+        };
+
+
+        $.ajax({
+            url: myajax.url,
+            type: 'POST',
+            dataType: 'json',
+            data: data,
+            complete: function (response) {
+                var data = $.parseJSON(response.responseText);
+                if (response) {
+                    $('.checkboxes_dop_functions_block').html(data.html);
+                    price_all();
+
+                    project.show_order.show_time_arr = {"30": 0, "45": "0", "60": 0, "80": 0}; // Продолжительность + Цена
+                    project.show_order.show_base_pers_cnt = {
+                        "1-10": 0,
+                        "10-20": "100",
+                        "20-30": "200",
+                        "\u0431\u043e\u043b\u0435\u0435 30": "300"
+                    }; //Количество участников
+                    project.show_order.show_base_price = data.show_price;
+
+                    project.show_order.killometr_price = 7;
+
+                    project.show_order.element_id = 16;
+                    var minuteTitle = 'мин';
+                    project.show_order.init();
+                    $(function () {
+                        project.show_order.getExperiments();
+
+                        $(".result_show_block").scrollToFixed({
+                            top: '16px'
+                        });
+
+                        $('.all-info-show a').click(function () {
+                            $('.more-info-show').each(function () {
+                                $(this).css({'display': ''});
+                            });
+
+
+                            if (time_parametr == '60') {
+                                $('#60min').click();
+                            }
+
+                            $(this).remove();
+                            return false;
+                        });
+                    });
+
+                }
+            }
+        });
+
+    });
+});

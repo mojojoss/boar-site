@@ -1,0 +1,370 @@
+/* Author: 
+
+	OPENER
+*/
+
+project.show_order = {
+    show_options_data: [],
+    experiments_list: [],
+    selected_experiments: [],
+
+	init: function(){
+
+        var self = this;
+
+		this.binds();
+        this.dop_options_controller();        
+
+        $('.labelpadding input[type=radio]:eq(0)').attr('checked','checked');
+        $('.playerss input[type=radio]:eq(0)').attr('checked','checked');
+        
+        this.recalc();
+
+        this.init_datepicker();
+
+        project.ajax_form.init($('#target'),$('#send_show_order_form_btn'),'/core/get_show_request/');
+        project.ajax_form.callback = function(data){
+
+            console.log(data);
+        }
+
+
+	},
+        getExperiments : function() {
+            project.post('/core/get_show_experiments_form/',{elem_id: project.show_order.element_id},function(data){
+
+                $('.experimets_list').html(data.data);
+
+                $(".experimets_list_item").each(function(){
+
+                    var e_id = $(this).data("id");
+                    var ind = $.inArray(e_id,project.show_order.selected_experiments);
+
+                    if (ind > -1) {
+                        $(this).addClass("selected");              
+                    }
+
+                });
+                
+                $('.all-exp-more a').click(function(){
+                    $('.more-info-exp').each(function(){
+                        $(this).css({'display':''});
+                    });
+                    $(this).remove();
+                    return false;
+                });
+
+            });
+            return false; 
+        },
+	binds: function(){
+
+        var self = this;
+
+        $('#order_show_btn').click(function(){
+
+            $('#popup_modal_wnd').remove();
+
+            project.post('/core/get_show_order_form/',{},function(data){
+
+                $('body')
+                .append(
+                    $('<div>')
+                        .attr('id','popup_modal_wnd')
+                        .html(data.data)
+                );
+
+                $('#popup_modal_wnd').arcticmodal({
+                    afterClose: function(data, el) {
+                        $('#popup_modal_wnd').remove();
+                    }                    
+                });
+                $(".date_input").datepicker({
+                    dateFormat: 'yy.mm.dd'
+                });
+
+
+            });
+            return false;
+        });
+        
+        $('#show_all_experiments_btn').click(function(){
+
+            $('#popup_modal_wnd').remove();
+
+            project.post('/core/get_show_experiments_form/',{elem_id: project.show_order.element_id},function(data){
+
+                $('body')
+                .append(
+                    $('<div>')
+                        .attr('id','popup_modal_wnd')
+                        .html(data.data)
+                );
+        
+                $('#popup_modal_wnd').arcticmodal({
+                    afterClose: function () {
+                        $('#popup_modal_wnd').html('');
+                    }
+                });
+
+                $(".experimets_list_item").each(function(){
+
+                    var e_id = $(this).data("id");
+                    var ind = $.inArray(e_id,project.show_order.selected_experiments);
+
+                    if (ind > -1) {
+                        $(this).addClass("selected");              
+                    }
+
+                });
+
+            });
+            return false;            
+        });
+
+        $('#send_show_order_form_btn').live('click',function(){
+            self.send_show_order_form();
+        });
+
+
+        $('.city_table a').live('click',function(){
+            var ind = $('.city_table a').index(this);
+            $('.city_table a.city_link_other_active').removeClass('city_link_other_active').addClass('city_link_other');
+            $(this).removeClass('city_link_other').addClass('city_link_other_active');
+            $('#order_show_city_select :selected').removeAttr('selected');
+            $('#order_show_city_select option:eq('+ind+')').attr('selected','selected');
+            $('#order_show_city_select').change();
+            return false;
+        });
+
+
+        $('#order_show_city_select').change(function(){
+
+            self.change_city($(this).val());
+
+        });
+
+
+        $('.experimets_list_item').live('click',function(){
+
+            var e_id = $(this).data('id');
+            var ind = $.inArray(e_id,self.selected_experiments);
+
+            if (ind > -1) {
+                self.selected_experiments.remove(ind);
+            } else {
+                self.selected_experiments.push(e_id);                
+            }
+
+            $('#experiments_list').html('');
+            for (var ind in self.selected_experiments) {
+
+                if (typeof (self.selected_experiments[ind]) != 'number') continue;
+
+                $('#experiments_list').append($('<input>',{
+                    'type': 'hidden',
+                    'name': 'experiments[]',
+                    'value': self.selected_experiments[ind]
+                }));
+            }
+
+            $(this).toggleClass('selected');
+
+            return false;
+
+        });
+
+
+	},
+    dop_options_controller: function(){
+
+        var self = this;
+
+        $('.checkboxes_dop_functions_block input[type=checkbox]').change(function(){
+            var ind = $('.checkboxes_dop_functions_block input[type=checkbox]').index(this);
+
+            if (self.show_options_data[ind].included == 1) {
+                $(this).attr('checked',!$(this).prop('checked'));
+            }
+
+            self.recalc();
+            return false;
+        });
+
+        $('.labelpadding input[type=radio], .playerss input[type=radio], #kilom1_has, #kilom1').change(function(){
+            self.recalc();
+        });
+
+        $('#kilom1').keyup(function(){
+            self.recalc();
+        });
+
+
+        $('#kilom1_has').change(function(){
+            $('#kilom1').attr('disabled',!$(this).prop('checked'));
+        });
+    },
+    recalc: function() {
+        var self = this;
+        var base_price = parseInt(self.show_base_price);
+        var base_time = parseInt($('.labelpadding input[type=radio]:checked').val());
+        var base_time_price = parseInt(self.show_time_arr[base_time]);
+        var base_pers_cnt_cost = parseInt(self.show_base_pers_cnt[$('.playerss input[type=radio]:checked').val()]);
+        var kilometters_cost = ($('#kilom1_has').prop('checked'))? parseInt(parseFloat($('#kilom1').val())) * self.killometr_price : 0 ;
+        var currency_name = $('.page_about').data('currency_name');
+        //подсчет стоимости опций
+        //
+        // opt_price
+        // opt_time
+        if (true) {
+            var opt_price = 0;
+            var opt_time = 0;
+            $('.checkboxes_dop_functions_block input[type=checkbox]:checked').each(function(){
+
+                var ind = $('.checkboxes_dop_functions_block input[type=checkbox]').index(this);
+
+                if (self.show_options_data[ind].included == false) {
+
+                    // opt_time = opt_time + parseInt($('.add_icons_time').text());
+                    // opt_price = opt_price + parseInt($('.add_icons_price').text());
+
+                    opt_time = opt_time + parseInt(self.show_options_data[ind].show_option_time);
+                    opt_price = opt_price + parseInt(self.show_options_data[ind].show_option_cost);
+
+                }
+
+            });
+// var opt_price = parseInt($('.add_icons_price').text());
+        }
+
+        var total_price = base_price + base_time_price + base_pers_cnt_cost + opt_price + kilometters_cost;
+        var total_time = base_time + opt_time;
+		var city = $('#city_text').val();
+		//var grivna = parseInt(total_price) * 0.321537447;
+
+        //расстановка значений
+        if (true) {
+
+            $('#show_cost_kilom1').text('+'+kilometters_cost+' '+currency_name+'.');
+
+            $('#show_cost_sel').text((base_time_price+base_price)+' '+currency_name);
+            $('#show_time_sel').text(base_time+' '+minuteTitle);
+            $('#count_cost_sel').text('+'+base_pers_cnt_cost+' '+currency_name+'.');    
+
+            $("#all_time").text(total_time+' '+minuteTitle); 
+            $("#all_cost").text(total_price+' '+currency_name);
+			//if (city == "Днепропетровск"){$("#all_cost").text(Number(grivna).toFixed(2)+' грн.');}
+			//if (city == "Киев"){$("#all_cost").text(Number(grivna).toFixed(2)+' грн.');}			
+        }
+    },
+    send_show_order_form: function(){
+
+        $('#popup_post_form').html('');
+
+        $('form#target').append(
+            $('<input>',{
+                name: 'show_total_time',
+                type: 'hidden',
+                value: $('#all_time').text()
+            })
+        ).append(
+            $('<input>',{
+                name: 'show_total_price',
+                type: 'hidden',
+                value: $('#all_cost').text()
+            })
+        );
+
+        var form_valid = true;
+
+        $('#cus-show').find('input[type="text"],input[type="email"],input[type="radio"]:checked,select,textarea').each(function(){
+
+            if ($(this).is(':invalid')) {
+
+                alert('Заполните все обязательные поля!'); 
+
+                form_valid = false;
+                return false;               
+
+            }
+
+            var input = $(this);
+
+            $('#popup_post_form').append(
+                '<input type="hidden" name="'+input.attr('name')+'" value="'+input.val()+'"/>'
+            );
+
+        });
+
+
+        if (!form_valid) return false;
+
+
+        project.ajax_form.submit($('#target'));
+        project.ajax_form.callback = function(data){
+
+            alert('Спасибо за ваш заказ');
+
+            $.arcticmodal('close');
+
+        }
+    },
+    init_datepicker: function(){
+
+                    $.datepicker.regional['ru'] = {
+                        closeText: 'Закрыть',
+                        prevText: '&#x3c;Пред',
+                        nextText: 'След&#x3e;',
+                        currentText: 'Сегодня',
+                        monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                        'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+                        monthNamesShort: ['Янв','Фев','Мар','Апр','Май','Июн',
+                        'Июл','Авг','Сен','Окт','Ноя','Дек'],
+                        dayNames: ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'],
+                        dayNamesShort: ['вск','пнд','втр','срд','чтв','птн','сбт'],
+                        dayNamesMin: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
+                        weekHeader: 'Нед',
+                        dateFormat: 'dd.mm.yy',
+                        firstDay: 1,
+                        isRTL: false,
+                        showMonthAfterYear: false,
+                        yearSuffix: ''};
+                    $.datepicker.setDefaults($.datepicker.regional['ru']);
+
+    },
+    change_city: function(ind){
+
+//        project.post('/core/get_domain/',{id:ind},function(data){
+        project.post('/core/set_city/',{id:ind},function(data){
+//            location.href = 'http://' + data.domain + location.pathname;
+//            location.href = 'http://' + data.domain + location.pathname;
+            location.reload();
+        })
+
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

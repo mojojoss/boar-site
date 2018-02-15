@@ -1,0 +1,82 @@
+﻿/* Author: 
+
+        OPENER
+*/
+
+project.main_home = {
+
+    init: function(){
+
+    	this.binds();
+    	this.subscriber.init();
+
+    },
+    binds: function(){
+                
+    },
+
+    subscriber: {
+
+    	init: function(){
+
+    		this.binds();
+
+    	},
+    	binds: function(){
+
+    		$('#feed_control_add').click(function(){
+
+    			var usr_email = $('#email_feed').val();
+                if (!usr_email) alert('Введите e-mail!');
+
+    			project.post('/core/user_subscribe/',{email: usr_email},function(data){
+
+    				if (data.success) alert('Вы добавлены в список рассылки');
+
+    			});
+
+    			return false;
+    		});
+
+    		$('#feed_control_remove').click(function(){
+
+                var usr_email = $('#email_feed').val();
+                if (!usr_email) alert('Введите e-mail!');
+
+                project.post('/core/user_unsubscribe/',{email: usr_email},function(data){
+
+                    if (data.success) alert('Вы убраны из списка рассылки');
+
+                });
+
+    			return false;
+    		});
+    	}
+
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,55 @@
+/* Author: 
+
+	OPENER
+*/
+
+project.news = {
+
+	init: function(){
+
+		this.binds();
+
+	},
+	binds: function(){
+
+		$('.news_page_news_slide_ctrl').click(function(){
+
+            var wrap = $(this).parent().parent().find('.news_page_news_slide_wrapper');
+            var e_w = 770;
+            var e_cnt = wrap.find('.news-box').size();
+            var vx = parseInt(wrap.css('left'));
+
+            if ($(this).hasClass('left')){
+                vx = vx + e_w;
+            } else {
+                vx = vx - e_w;
+            }
+
+            if (vx > 0) setTimeout(function(){wrap.css('left','0px')},100);
+            if (vx < (((e_cnt * e_w) - (e_w * 1)) *(-1))) setTimeout(function(){wrap.css('left',(((e_cnt * e_w) - (e_w * 1)) *(-1))+'px')},100);
+
+            wrap.css('left',vx+'px');
+
+            return false;
+        });
+
+	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

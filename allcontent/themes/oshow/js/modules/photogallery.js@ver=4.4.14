@@ -1,0 +1,198 @@
+﻿/* Author: 
+
+	OPENER
+*/
+
+project.photogallery = {
+
+	album_data: [],
+	photo_ind: 0,
+        photo_data_cache: {},
+
+	init: function(){
+
+        var self = this;
+
+        for(var i in photogallery_data[0]) {
+
+            photogallery_data[0][i]['photo_link'] = 'slir/w740-h555/'+photogallery_data[0][i]['photo_link'];
+
+        }
+
+		this.binds();
+		self.set_album(photogallery_data[0]);
+
+	},
+	binds: function(){
+
+                var self = this;
+
+                /*
+                $('.gallery_albums_i').click(function(){
+                	var ind = $('.gallery_albums_i').index(this);
+                        $('#main_big_photo_box').show();
+                	//var self.album_data = photogallery_data[ind];
+                	self.set_album(photogallery_data[ind]);
+                });
+                */
+                
+
+                $('.gallery_album_ctrl').live('click',function(){
+
+                	var last_ind = self.album_data.length -1;
+
+                	if ($(this).hasClass('left')) {
+                		self.photo_ind--;
+                	} else {
+                		self.photo_ind++;
+                	}
+
+                	if (self.photo_ind < 0) self.photo_ind = last_ind;
+                	if (self.photo_ind > last_ind) self.photo_ind = 0;
+
+                	$('.main_wnd_foto_img, .index_foto_img').attr('src','/'+self.album_data[self.photo_ind].photo_link).parent().attr('href','/'+self.album_data[self.photo_ind].photo_link);
+
+                        if ($(this).hasClass('arcticmodal_ctrl')) {
+
+                                var photo_id = self.album_data[self.photo_ind].id;
+                                $.arcticmodal('close');
+                                $.arcticmodal({
+                                        type: 'ajax',
+                                        ajax: {
+                                                type: 'POST',
+                                                data: { elem_id: photo_id }
+                                        },
+                                        url: '/core/get_photo_with_comments/',
+                                        afterOpen: function(){
+                                            self.update_photo_info();    
+                                        }
+                                });   
+
+                        } else {
+                                self.update_photo_info();	
+                        }
+
+                	return false; 
+                });
+
+
+                $('.media_window_likes[data-type="photo"]').live('click',function(){
+
+                        var photo_id = self.album_data[self.photo_ind].id;
+                        project.post('/core/send_like/', {elem_id: photo_id}, function(data){
+                                if (data.success) {
+                                        var likes = parseInt($('.media_window_likes[data-type="photo"]').text());
+                                        likes++;
+                                        $('.media_window_likes[data-type="photo"]').text(likes);
+                                } else {
+                                    alert('Вы уже голосовали за это фото');
+                                }
+                        });
+
+                        return false;
+
+                });
+
+
+                $('.media_window_comments[data-type="photo"], .photo_foto_img_holder').live('click',function(){
+
+                        var photo_id = self.album_data[self.photo_ind].id;
+                        $.arcticmodal('close');
+                        $.arcticmodal({
+                                type: 'ajax',
+                                ajax: {
+                                        type: 'POST',
+                                        data: { elem_id: photo_id }
+                                },
+                                url: '/core/get_photo_with_comments/',
+                                afterOpen: function(){
+                                    self.update_photo_info();    
+                                }
+                        });                        
+
+                        return false;
+
+                });
+
+
+
+	},
+	set_album: function(obj){
+
+		this.album_data = obj;
+		this.photo_ind = 0;
+
+                if (obj.length < 2) {
+                        $('.gallery_album_ctrl').hide();
+                } else {
+                        $('.gallery_album_ctrl').show();
+                }
+
+		$('.index_foto_img').attr('src','/'+obj[0].photo_link);
+        this.update_photo_info();
+
+	},
+        update_photo_info: function(){
+
+                var photo_id = this.album_data[this.photo_ind].id;
+
+                if (typeof this.photo_data_cache[photo_id] != 'undefined') {
+
+                        $('.media_window_likes[data-type="photo"]').text(this.photo_data_cache[photo_id].likes);
+
+                } else {
+
+                        project.post('/core/get_gall_data/', {elem_id: photo_id}, function(data){
+                                if (data.success) {
+
+                                        $('.media_window_likes[data-type="photo"]').text(data.likes);
+                                        $('.media_window_comments[data-type="photo"]').text(data.comments);
+
+                                        this.photo_data_cache[photo_id] = {
+                                                likes: data.likes,
+                                                comments: data.comments
+                                        }; 
+                                }
+                        });
+
+                }   
+        },
+        updateComments: function(num,last_comment) {
+
+                var photo_id = project.photogallery.album_data[project.photogallery.photo_ind].id;
+
+                project.post('/core/update_comments/', {elem_id: photo_id, cnt: num}, function(data){
+                        
+                        if (data.success) {
+                                project.photogallery.update_photo_info();      
+                        }
+                                
+                });
+
+        }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

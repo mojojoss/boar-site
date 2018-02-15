@@ -1,0 +1,688 @@
+/**
+ * description: header and misc elements animation
+ * author: kirgh matsh
+ * date: 14.10.12 22:09
+ */
+
+var EA_FPS = 40;
+var ea_mainApplication;
+
+ea_setup();
+
+function ea_setup() {
+
+    /** class constructor helpers */
+    var MakeClass = function () {
+        return function (args) {
+            if (this instanceof arguments.callee) {
+                if (typeof this.__construct == 'function') this.__construct.apply(this, args);
+            } else return new arguments.callee(arguments);
+        };
+    };
+
+    var NewClass = function (variables, constructor, functions) {
+        var retn = MakeClass();
+        var key;
+        for (key in variables) {
+            retn.prototype[key] = variables[key];
+        }
+        for (key in functions) {
+            retn.prototype[key] = functions[key];
+        }
+        retn.prototype.__construct = constructor;
+        return retn;
+    };
+
+
+    /** classes */
+    /** single flying item */
+    var Element = NewClass(
+        {
+            '_mElementId':'',
+            '_mImageUrl':'',
+            '_mElement':null,
+            '_mHasElement':false,
+            '_mEaseFunction':null,
+            '_mRepeatInterval':100,
+            '_mStartX':0,
+            '_mStartY':0,
+            '_mX':0,
+            '_mY':0,
+            '_mMinX':0,
+            '_mMinY':0,
+            '_mMaxX':0,
+            '_mMaxY':0,
+            '_mCanvasWidth':0,
+            '_mCanvasHeight':0,
+            '_mCurrentCount':0,
+            '_mPausedCount':-1,
+            '_mOffsetWidth':200,
+            '_mOffsetHeight':200,
+            '_mContainer':null
+        },
+        function (url, easeFunction, repeatSeconds, startX, startY, offsetWidth, offsetHeight) {
+            this._mImageUrl = url;
+            this._mEaseFunction = easeFunction;
+            this._mRepeatInterval = (repeatSeconds || 0) * EA_FPS;
+            this._mStartX = startX || 0;
+            this._mStartY = startY || 0;
+            this._mOffsetWidth = offsetWidth || 200;
+            this._mOffsetHeight = offsetHeight || 200;
+            this._mMinX = -this._mOffsetWidth;
+            this._mMinY = -this._mOffsetHeight;
+        },
+        {
+            'acquireElement':function () {
+                this._mElement = document.getElementById(this._mElementId);
+                this._mHasElement = Boolean(this._mElement);
+                if (!this._mHasElement) {
+                    return;
+                }
+                this._mX = this._mStartX;
+                this._mY = this._mStartY;
+                this.setXY();
+            },
+
+            'setDimensions':function (maxX) {
+                this._mMaxX = maxX;
+                this._mCanvasWidth = maxX - this._mMinX;
+                this._mCanvasHeight = this._mMaxY - this._mMinY;
+            },
+
+            "isAnimationAllowed":function () {
+                return this._mHasElement;
+            },
+
+            'onTimeout':function () {
+                this._mCurrentCount++;
+                if (this._mCurrentCount >= this._mRepeatInterval) {
+                    this._mCurrentCount = 0;
+                }
+                this._mEaseFunction(this);
+            },
+
+            "setXY":function () {
+                if (!this._mElement) {
+                    return;
+                }
+
+                var newStyle = 'left: ' + Math.round(this._mX) + 'px; top: ' + Math.round(this._mY) + 'px;';
+                if( typeof( this._mElement.style.cssText ) != 'undefined' ) {
+                    this._mElement.style.cssText = newStyle;
+                } else {
+                    this._mElement.setAttribute('style',newStyle);
+                }
+            },
+
+            'pause':function () {
+                if (!this._mPaused) {
+                    this._mPaused = true;
+                    this._mPausedCount = 0;
+                }
+            },
+
+            'increasePauseTicks':function () {
+                this._mPausedCount++;
+            },
+
+            'resume':function () {
+                if (this._mPaused) {
+                    this._mPaused = false;
+                    this._mPausedCount = 0;
+                }
+            },
+
+            'hide':function () {
+                this._mElement.style.display = 'none';
+            },
+
+            'show':function () {
+                this._mElement.style.display = 'block';
+            },
+
+            'getHtmlText':function (index) {
+                this._mElementId = 'ea_element_' + index;
+                return '<img class="flying" style="display:none" id="' + this._mElementId + '" src="/img/' + this._mImageUrl + '"/>'
+            }
+
+        }
+    );
+
+    /** main application class */
+    var MainApplication = NewClass(
+        {
+            "_mElements":[],
+            'mIntervalId':-1,
+            '_mLastMouseX':0,
+            '_mLastMouseY':0,
+            '_mSpeedX':0,
+            '_mSpeedY':0,
+            '_mAddX':0,
+            '_mAddY':0,
+            "_mContainers":[],
+            '_mLastElementIndex':0
+        },
+        function () {
+
+        },
+        {
+            'addContainer':function (containerId, flyingType, count, exactHeight, bottomElementId, bottomAdjuster, forceHeight) {
+                if (!this._mContainers) {
+                    this._mContainers = [];
+                }
+                this._mContainers.push(
+                    {
+                        containerId:containerId,
+                        type:flyingType,
+                        count:count,
+                        exactHeight:exactHeight,
+                        bottomElementId:bottomElementId,
+                        bottomAdjuster:bottomAdjuster,
+                        forceHeight:forceHeight
+                    }
+                );
+            },
+
+            'setupOnLoaded':function () {
+                var i = 0;
+                var container;
+
+                this._mElements = [];
+
+                for (i = 0; i < this._mContainers.length; i++) {
+                    container = document.getElementById(this._mContainers[i].containerId);
+                    if (!container) {
+                        continue;
+                    }
+                    var newElements = this.createElements(
+                        container,
+                        this._mContainers[i].type,
+                        this._mContainers[i].count,
+                        this._mContainers[i].exactHeight,
+                        this._mContainers[i].bottomElementId,
+                        this._mContainers[i].bottomAdjuster,
+                        this._mContainers[i].forceHeight
+                    );
+                    this._mElements = this._mElements.concat(newElements);
+                }
+
+                for (i = 0; i < this._mElements.length; i++) {
+                    this._mElements[i].acquireElement();
+                }
+
+                document.body.onmousemove = function (e) {
+                    ea_mainApplication.onMouseMove(e);
+                };
+                window.onresize = function () {
+                    ea_mainApplication.onResize();
+                };
+            },
+
+            'onResize':function () {
+                if (!this._mElements) {
+                    return;
+                }
+
+                var lastContainer;
+                var lastContainerWidth;
+
+                for (var i = 0; i < this._mElements.length; i++) {
+                    var element = this._mElements[i];
+                    if (element._mContainer != lastContainer) {
+                        lastContainer = element._mContainer;
+                        lastContainerWidth = lastContainer.offsetWidth;
+                    }
+                    element.setDimensions(lastContainerWidth);
+                }
+            },
+
+            'getOffset':function (el) {
+                var _x = 0;
+                var _y = 0;
+                while (el && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop)) {
+                    _x += el.offsetLeft - el.scrollLeft;
+                    _y += el.offsetTop - el.scrollTop;
+                    el = el.offsetParent;
+                }
+                return { top:_y, left:_x };
+            },
+
+            'createElements':function (container, containerType, count, exactHeight, bottomElementId, bottomAdjuster, forceHeight) {
+                var elements = [];
+                var element;
+                var containerHeight = container.offsetHeight;
+                if (exactHeight && exactHeight > 0) {
+                    containerHeight = exactHeight;
+                }
+                if (bottomElementId) {
+                    var bottomElement = document.getElementById(bottomElementId);
+                    if (bottomElement) {
+                        containerHeight = this.getOffset(bottomElement).top - this.getOffset(container).top;
+                        if (bottomAdjuster) {
+                            containerHeight += bottomAdjuster;
+                        }
+                    }
+                }
+
+                if (!containerHeight) {
+                    return [];
+                }
+
+                if (forceHeight) {
+                    container.style.height = containerHeight.toString() + "px";
+                }
+                container.style.overflow = 'hidden';
+
+                var i = 0;
+                var j = 0;
+                var innerHtmlText = '';
+                var tempElements = [];
+
+                switch (containerType) {
+                    case 1:
+                        tempElements.push(Element('samolet.png', this._createPlaneEaseFunction(2000, 0.3, 6), 2, (Math.random() > 0.5 ? 1800 : -700), 170, 400, 30));
+                        tempElements.push(Element('cloud_small.png', this._createHorisonalSlidingEaseFunction(100 + Math.random()*50, 2+Math.random()*1.5, 10, Math.random()-0.8, 0, 0), 2, -400, 10, 60, 60));
+                        tempElements.push(Element('cloud-big.png', this._createHorisonalSlidingEaseFunction(40+Math.random()*20, 4, 3 + 5 * Math.random(), Math.random()-0.4, 0, 0), 15, -300, 10, 100, 100));
+                        tempElements.push(Element('bird.png', this._createHorisonalSlidingEaseFunction(230, 5, 5 + 4 * Math.random(), Math.random(), 5, 3), 1, -200, 35, 100, 100));
+                        tempElements.push(Element('baloon.png', this._createVerticalSlidingEaseFunction(), 0, -100, -100, 90, 90));
+                        tempElements.push(Element('parashute.png', this._createLinearEaseFunction(100, 70, 3 + Math.random()*3), 4, 260, 800, 100, 100));
+                        break;
+                    case 2:
+                        tempElements.push(Element('cloud_small.png', this._createHorisonalSlidingEaseFunction(120 + Math.random() * 50, 2, 6 + Math.random()*5, 0.5 - Math.random(), 0, 0), 2, -400, 10, 60, 60));
+                        tempElements.push(Element('cloud_small.png', this._createHorisonalSlidingEaseFunction(90 + Math.random()*60, 4, 15 + Math.random() * 10, Math.random(), 0, 0), 3, -400, 25, 60, 60));
+                        tempElements.push(Element('cloud-big.png', this._createHorisonalSlidingEaseFunction(100, 5, 4, 0.8 + Math.random() * 0.2, 1, 2.3), 2, -100, 140, 60, 60));
+                        tempElements.push(Element('bird.png', this._createHorisonalSlidingEaseFunction(230, 5, 6, 0.5 * Math.random(), 5, 3), 1, -200, 35, 100, 100));
+                        tempElements.push(Element('baloon.png', this._createVerticalSlidingEaseFunction(), 0, -100, -100, 90, 90));
+                        tempElements.push(Element('parashute.png', this._createLinearEaseFunction(100, 70, 3, 500), 4, 260, 800, 100, 100));
+                        break;
+                    case 3:
+                        var allImages = [
+                            ['apple.png', 34, 34],
+                            ['boom.png', 118, 89],
+                            ['gift.png', 83, 93],
+                            ['element-1.png', 50, 55],
+                            ['mini-glob.png', 32, 40],
+                            ['tree.png', 33, 49],
+                            ['element.png', 42, 39],
+                            ['cherry.png', 32, 40],
+                            ['sun.png', 55, 55],
+                            ['g-w-g.png', 72, 115],
+                            ['lamp.png', 21, 30],
+                            ['mini-boy.png', 45, 74],
+                            ['enshtein.png', 64, 80],
+                            ['candy.png', 125, 134],
+                            ['Vshar.png', 78, 96],
+                            ['H2O.png', 77, 69]
+                        ];
+
+                    function randOrd() {
+                        return (Math.round(Math.random()) - 0.5);
+                    }
+
+                        var leftImages = [];
+
+                        var realCount = Math.round(count * containerHeight / 25000);
+                        var speedModifier = 1;
+                        if (realCount < 3) {
+                            speedModifier = 3 / Math.max(1, realCount);
+                            realCount = 3;
+                        }
+                        for (j = 0; j < realCount; j++) {
+                            if (leftImages.length <= 0) {
+                                leftImages = allImages.concat();
+                                leftImages.sort(randOrd);
+                            }
+                            var image = leftImages.shift();
+                            tempElements.push(Element(image[0], this._createVerticalSlidingEaseFunction(speedModifier), 0, -100, -100, image[1], image[2]));
+                        }
+                        break;
+                    default:
+                        return;
+                }
+                for (i = 0; i < tempElements.length; i++) {
+                    element = tempElements[i];
+                    element._mMaxY = containerHeight;
+                    element.setDimensions(container.offsetWidth);
+                    this._mLastElementIndex++;
+                    innerHtmlText += element.getHtmlText(this._mLastElementIndex);
+                    element._mContainer = container;
+                    elements.push(element);
+                }
+                container.innerHTML = innerHtmlText + container.innerHTML;
+                return elements;
+            },
+
+            'onMouseMove':function (e) {
+                var event = e || window.event;
+                var x = event.clientX;
+                var y = event.clientY;
+                if (this._mLastMouseX && this._mLastMouseY) {
+                    var speedDelta = x - this._mLastMouseX;
+                    if (speedDelta != 0) {
+                        speedDelta = speedDelta / (speedDelta > 0 ? speedDelta : -speedDelta);
+                    }
+                    this._mSpeedX += speedDelta;
+                    this._mSpeedX = this._mSpeedX > 30 ? 30 : (this._mSpeedX < -30 ? -30 : this._mSpeedX );
+                    speedDelta = y - this._mLastMouseY;
+                    if (speedDelta != 0) {
+                        speedDelta = speedDelta / (speedDelta > 0 ? speedDelta : -speedDelta);
+                    }
+                    this._mSpeedY += speedDelta;
+                    this._mSpeedY = this._mSpeedY > 30 ? 30 : (this._mSpeedY < -30 ? -30 : this._mSpeedY );
+                }
+                this._mLastMouseX = x;
+                this._mLastMouseY = y;
+            },
+
+            'start':function (repeatInterval) {
+                if (this.mIntervalId != -1) {
+                    return;
+                }
+                this.mIntervalId = setInterval(function () {
+                    ea_mainApplication.onInterval();
+                }, repeatInterval);
+            },
+
+            'stop':function () {
+                if (this.mIntervalId != -1) {
+                    clearInterval(this.mIntervalId);
+                }
+                this.mIntervalId = -1;
+            },
+
+            'onInterval':function () {
+                var i;
+                var element;
+                if (this._mSpeedX != 0) {
+                    this._mAddX += this._mSpeedX;
+                    this._mAddX = this._mAddX > 1000 ? 1000 : (this._mAddX < -1000 ? -1000 : this._mAddX);
+                    this._mSpeedX *= 0.99;
+                    if (this._mSpeedX < 1 && this._mSpeedX > -1) {
+                        this._mSpeedX = 0;
+                    }
+                }
+
+                if (this._mSpeedY != 0) {
+                    this._mAddY += this._mSpeedY;
+                    this._mAddY = this._mAddY > 1000 ? 1000 : (this._mAddY < -1000 ? -1000 : this._mAddY );
+                    this._mSpeedY *= 0.99;
+                    if (this._mSpeedY < 1 && this._mSpeedY > -1) {
+                        this._mSpeedY = 0;
+                    }
+                }
+                if (this._mAddX != 0) {
+                    this._mAddX *= 0.85;
+                    if (this._mAddX < 1 && this._mAddX > -1) {
+                        this._mAddX = 0;
+                    }
+                }
+                if (this._mAddY != 0) {
+                    this._mAddY *= 0.85;
+                    if (this._mAddY < 1 && this._mAddY > -1) {
+                        this._mAddY = 0;
+                    }
+                }
+                var len = this._mElements.length;
+                for (i = 0;i < len; i++) {
+                    element = this._mElements[i];
+
+                    if (element.isAnimationAllowed()) {
+                        this.countAdjustments(element);
+                        if (element.lastXAdj){
+                            element._mX -= element.lastXAdj;
+                        }
+                        if (element.lastYAdj){
+                            element._mY -= element.lastYAdj;
+                        }
+                        element.onTimeout();
+
+                        if (element.newXAdj) {
+                            element._mX += element.newXAdj;
+                        }
+                        element.lastXAdj = element.newXAdj;
+                        if (element.newYAdj) {
+                            element._mY += element.newYAdj;
+                        }
+                        element.lastYAdj = element.newYAdj;
+                        element.setXY();
+                    }
+                }
+            },
+
+            'countAdjustments':function (element) {
+                if (this._mAddX) {
+                    element.newXAdj = this._mAddX * 0.1;
+                }
+                if (this._mAddY) {
+                    element.newYAdj = this._mAddY * 0.1;
+                }
+            },
+
+
+            '_createLinearEaseFunction':function (speedX, speedY, pauseTime) {
+                speedX = speedX / EA_FPS;
+                speedY = speedY / EA_FPS;
+                var pauseTicks = pauseTime * EA_FPS;
+
+                return function (element) {
+
+                    if (!element._mIsInited) {
+                        element.show();
+                        element._mIsInited = true;
+                    }
+
+                    if (element._mPaused) {
+                        element.increasePauseTicks();
+                        if (element._mPausedCount > pauseTicks) {
+                            element.pCurrentSpeedX = (0.3 + Math.random()) * speedX;
+                            element.pCurrentSpeedY = (0.3 + Math.random()) * speedY;
+                            element.resume();
+                            element.show();
+                        } else {
+                            return;
+                        }
+                    } else if (element._mPausedCount == -1) {
+                        element._mPausedCount = 0;
+                        element.pCurrentSpeedX = (0.3 + Math.random()) * speedX;
+                        element.pCurrentSpeedY = (0.3 + Math.random()) * speedY;
+                    }
+
+
+                    var newX = element._mX + element.pCurrentSpeedX;
+                    var newY = element._mY + element.pCurrentSpeedY;
+
+                    var needPause = false;
+                    if (newX > element._mMaxX && speedX > 0) {
+                        newX -= element._mCanvasWidth;
+                        if (newX > element._mMinX) {
+                            newX = element._mMinX
+                        }
+                        needPause = true;
+                    }
+                    if (newX < element._mMinX && speedX < 0) {
+                        newX += element._mCanvasWidth;
+                        if (newX < element._mMaxX) {
+                            newX = element._mMaxX;
+                        }
+                        needPause = true;
+                    }
+                    if (newY > element._mMaxY && speedY > 0) {
+                        newY -= element._mCanvasHeight + element._mOffsetHeight;
+                        if (newY > element._mMinY) {
+                            newY = element._mMinY;
+                        }
+                        needPause = true;
+                    }
+                    if (newY < element._mMinY && speedY < 0) {
+                        newY += element._mCanvasHeight;
+                        if (newY < element._mMaxY) {
+                            newY = element._mMaxY;
+                        }
+                        needPause = true;
+                    }
+                    element._mX = newX;
+                    element._mY = newY;
+                    if (needPause) {
+                        element.pause();
+                        element.hide();
+                    }
+                }
+            },
+
+            '_createHorisonalSlidingEaseFunction':function (speed, maxDeviation, pauseTime, startPosition, secondDeviation, secondDeviationFrequency) {
+                speed = speed / EA_FPS;
+                startPosition = startPosition || 0;
+                var pauseTicks = pauseTime * EA_FPS;
+                var pauseStartPosition = Math.round(pauseTicks * startPosition);
+
+                return function (element) {
+
+                    if (!element._mIsInited) {
+                        element.show();
+                        element._mIsInited = true;
+                    }
+
+                    if (element._mPaused) {
+                        element.increasePauseTicks();
+                        if (element._mPausedCount > pauseTicks) {
+                            element.resume();
+                            element.show();
+                            element._mX = speed > 0 ? element._mMinX - element._mOffsetWidth : element._mMaxX;
+                        } else {
+                            return;
+                        }
+                    } else if (element._mPausedCount == -1) {
+                        element._mPausedCount = 0;
+                        if (pauseStartPosition >= 0) {
+                            element.pause();
+                            element.hide();
+                        }
+                    }
+
+
+                    element._mX = element._mX + speed;
+                    if ((speed > 0 && element._mX > element._mMaxX) || (speed < 0 && element._mX < element._mMinY)) {
+                        element.pause();
+                        element.hide();
+                    }
+
+                    if (maxDeviation == 0) {
+                        return;
+                    }
+                    var newY = element._mStartY + maxDeviation * Math.sin(2 * Math.PI * element._mCurrentCount / element._mRepeatInterval);
+                    if (secondDeviation > 0) {
+                        newY += secondDeviation * Math.sin(secondDeviationFrequency * 2 * Math.PI * element._mCurrentCount / element._mRepeatInterval);
+                    }
+                    element._mY = newY;
+                }
+            },
+
+            '_createVerticalSlidingEaseFunction':function (pauseModifier) {
+                pauseModifier = pauseModifier || 1;
+                var speed = -(0.5 + 3.5 * Math.random() * Math.random());
+                var maxDeviation = 1 + Math.random() * 10;
+                var pauseTicks = Math.random() * 3 * pauseModifier * EA_FPS;
+                var pauseStartPosition = pauseTicks * (0.3 - Math.random());
+                var repeatInterval = (1 + Math.random() * 5) * EA_FPS;
+
+                return function (element) {
+                    if (element._mPaused) {
+                        element.increasePauseTicks();
+                        if (element._mPausedCount > pauseTicks) {
+                            element.resume();
+                            var normedX = (0.2 + 0.7 * (1 - Math.random() * Math.random() )) * (Math.random() > 0.5 ? 1 : -1);
+                            element._mStartX = element._mMinX + 50 + 0.5 * (element._mMaxX - element._mMinX - 50) * ( 1 + normedX);
+                            element._mY = element._mMaxY + element._mOffsetHeight;
+                            element.show();
+                        } else {
+                            return;
+                        }
+                    } else if (!element._mIsInited) {
+                        element._mIsInited = true;
+                        element._mPausedCount = 0;
+                        element._mRepeatInterval = repeatInterval;
+                        if (pauseStartPosition >= 0) {
+                            element.pause();
+                            element.hide();
+                        } else {
+                            element.resume();
+                            var normedX = (0.2 + 0.7 * (1 - Math.random() * Math.random() )) * (Math.random() > 0.5 ? 1 : -1);
+                            element._mStartX = element._mMinX + 50 + 0.5 * (element._mMaxX - element._mMinX - 50) * ( 1 + normedX);
+                            element._mY = (element._mMaxY + element._mOffsetHeight) * Math.random();
+                            element.show();
+                        }
+                        return;
+                    }
+
+                    element._mY = element._mY + speed;
+
+                    if (element._mY < -element._mOffsetHeight) {
+                        element.pause();
+                        element.hide();
+                    }
+
+                    if (maxDeviation == 0) {
+                        return;
+                    }
+                    var newX = element._mStartX + maxDeviation * Math.sin(2 * Math.PI * element._mCurrentCount / element._mRepeatInterval);
+                    element._mX = newX;
+                }
+            },
+
+            '_createPlaneEaseFunction':function (speed, minSpeed, pauseTime) {
+                speed = speed / EA_FPS;
+                var pauseTicks = pauseTime * EA_FPS;
+                return function (element) {
+
+                    if (!element._mIsInited) {
+                        element.show();
+                        element._mIsInited = true;
+                    }
+
+                    if (element._mPaused) {
+                        element.increasePauseTicks();
+                        if (element._mPausedCount > pauseTicks) {
+                            element.resume();
+                            element.show();
+                            element._mX = element._mMinX - element._mOffsetWidth;
+                        } else {
+                            return;
+                        }
+                    }
+                    element._mSpeedX = minSpeed + speed * Math.abs(element._mX - 0.25 * (element._mMaxX - element._mMinX)) / (element._mMaxX - element._mMinX);
+                    element._mX += element._mSpeedX;
+                    if (element._mX > element._mMaxX + 300) {
+                        element.pause();
+                        element.hide();
+                    }
+
+                    element._mY = element._mStartY + 5 * Math.sin(2 * Math.PI * element._mCurrentCount / element._mRepeatInterval);
+                }
+            }
+
+
+        }
+    );
+
+
+    /** init main application */
+    ea_mainApplication = MainApplication();
+}
+
+function ea_init() {
+
+    /*if(BrowserDetect.OS == 'iPhone/iPod' || BrowserDetect.OS == 'Mac' || BrowserDetect.OS == 'an unknown OS'){
+        return;
+    }*/
+
+    var isMobile = (function (a) {
+        return (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4)));
+    })(navigator.userAgent || navigator.vendor || window.opera);
+    if(isMobile){
+        return;
+    }
+    ea_mainApplication.setupOnLoaded();
+    ea_mainApplication.start(1000 / EA_FPS);
+}
+
+window.onload = ea_init;
